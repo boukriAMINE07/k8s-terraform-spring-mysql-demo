@@ -334,7 +334,9 @@ resource "kubernetes_deployment" "demo_app_mysql_deployment" {
 
 > [!TIP]
 > **Deployment:** to checkout the MySql image and run it as a Pod/Container.
+> 
 > **PersistentVolumeClaim:** to manage storage.
+> 
 > **Service:** to expose the MySql container inside Kubernetes cluster.
 ---
 <a name="application-deployment"></a>
