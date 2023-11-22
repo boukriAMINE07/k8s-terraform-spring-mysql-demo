@@ -1,7 +1,19 @@
 # Terraform Demo: Deploy Spring Boot Application with MySQL DB on Kubernetes
 
+## 📝 Table of Contents
 This project demonstrates how to use Terraform to deploy a Spring Boot application with a MySQL database on Kubernetes.
 
+- [Prerequisites](#prerequisites)
+- [Create Your Application](#create-your-application)
+- [Dockerize the Application](#dockerize-the-application)
+- [Deploy MySql on Kubernetes](#deploy-mysql-on-kubernetes)
+- [Application deployment](#application-deployment)
+- [Create the main Terraform file](#create-the-main-terraform-file)
+- [Deploy your application](#deploy-your-application)
+- [Clean Up](#clean-up)
+- [Conclusion](#conclusion)
+---
+<a name="prerequisites"></a>
 ## 📚 Prerequisites
 
 Ensure you have the following tools installed. If not, follow the provided links for installation guides:
@@ -19,7 +31,7 @@ Ensure you have the following tools installed. If not, follow the provided links
     - To check if kubectl is installed, run `kubectl version --client` in the terminal.
 
 ---
-
+<a name="create-your-application"></a>
 ## Part I - Create Your Application
 
 To begin, you need a Spring Boot application. You can either create a new one using your preferred IDE or use
@@ -74,7 +86,7 @@ spring:
 and `DB_PASSWORD`.
 
 ---
-
+<a name="dockerize-the-application"></a>
 ## Part II - Dockerize the Application
 
 In this section, you'll containerize your Spring Boot application using Docker. Follow these steps to create a Docker
@@ -112,7 +124,7 @@ $ docker push <YOUR_DOCKER_USERNAME>/k8s-terraform-spring-mysql
 ```
 
 ---
-
+<a name="deploy-mysql-on-kubernetes"></a>
 ## Part III - Deploy MySql on Kubernetes
 
 To deploy MySql, follow these steps:
@@ -158,7 +170,7 @@ resource "kubernetes_secret" "demo_app_secret" {
 }
 ````
 
->[!TIP]
+>[!TIP]  
 > The values for `mysql-root-password` and `mysql-user-password` are base64 encoded. You can use the following command to encode your passwords:
 > ```bash
 > $ echo -n 'your-password' | base64
@@ -324,7 +336,8 @@ resource "kubernetes_deployment" "demo_app_mysql_deployment" {
 > Deployment: to checkout the MySql image and run it as a Pod/Container.
 > PersistentVolumeClaim: to manage storage.
 > Service: to expose the MySql container inside Kubernetes cluster.
-
+---
+<a name="application-deployment"></a>
 ## Part IV - Application deployment
 
 To deploy the application, follow these steps:
@@ -514,7 +527,7 @@ resource "kubernetes_deployment" "demo_app_spring_deployment" {
   }
 }
 ```
-
+<a name="create-the-main-terraform-file"></a>
 ## Part V - Create the main Terraform file
 
 To create the main Terraform file, follow these steps:
@@ -546,6 +559,7 @@ resource "kubernetes_namespace" "demo_app_ns" {
 > [!NOTE]     
 > The main.tf file, is the entry point for Terraform. It defines the required providers and the Kubernetes namespace.
 ---
+<a name="deploy-your-application"></a>
 ## Part VI - Deploy Your Application
 
 In the main Terraform directory, run the following command to initialize your working directory containing the Terraform configurations:
@@ -572,6 +586,7 @@ $ terraform apply -var 'registry_password=<YOUR_DOCKER_HUB_PASSWORD>' -auto-appr
 > Don't forget to replace `<YOUR_DOCKER_HUB_PASSWORD>` with your Docker Hub password.
 
 ---
+<a name="test-your-application"></a>
 ## Part VII - Test Your Application
 1. Make sure that all the pods are running and the app service is exposed as a load balancer:
 ```bash
@@ -579,13 +594,18 @@ $ kubectl get all -n demo-app-ns
 ```
 > [!NOTE]    
 > Your application is running now on http://localhost:8080.
-
-
+----
+<a name="clean-up"></a>
 ## Part VIII - Clean Up
 To clean up the resources created by Terraform, run the following command:
+> [!CAUTION]  
+> This will destroy all the resources created by Terraform.
 ```bash
 $ terraform destroy -var 'registry_password=<YOUR_DOCKER_HUB_PASSWORD>' -auto-approve
 ```
-
-Congratulations 🎉 ! You have successfully deployed a Spring Boot application with MySQL database on Kubernetes using Terraform.
+---
+## Conclusion
+- Congratulations 🎉 Thank you for reading my article !. 
+- You have successfully deployed a Spring Boot application with MySQL database on Kubernetes using Terraform.
+- I hope you enjoyed it and found it helpful. If you have any questions, please feel free to reach out to me on [LinkedIn](https://www.linkedin.com/in/amine-boukri/).
 
