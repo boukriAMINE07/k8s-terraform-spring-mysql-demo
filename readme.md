@@ -18,12 +18,14 @@ Ensure you have the following tools installed. If not, follow the provided links
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
     - To check if kubectl is installed, run `kubectl version --client` in the terminal.
 
-
 ---
+
 ## Part I - Create Your Application
 
-To begin, you need a Spring Boot application. You can either create a new one using your preferred IDE or use the [start.spring.io](https://start.spring.io/) website to generate a new project.
-Ensure to include the following dependencies:
+To begin, you need a Spring Boot application. You can either create a new one using your preferred IDE or use
+the [start.spring.io](https://start.spring.io/) website to generate a new project. Ensure to include the following
+dependencies:
+
 - spring-boot-starter-data-jpa
 - spring-boot-starter-web
 - mysql-connector-java
@@ -42,12 +44,16 @@ Ensure to include the following dependencies:
 ### Option 2: Use Existing Repository
 
 Alternatively, you can clone the following repository:
+
 ```bash
 git clone https://github.com/boukriAMINE07/k8s-terraform-spring-mysql-demo.git
 ```
 
-After completing the creation of your application, ensure that the `application.yml` file in ressources folder includes the following configuration:
+After completing the creation of your application, ensure that the `application.yml` file in ressources folder includes
+the following configuration:
+
 ##### 📄 application.yml
+
 ```yaml
 server:
   port: 8080
@@ -63,18 +69,22 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL5Dialect
 ```
-In this setup, Kubernetes will be employed to substitute the values for `DB_SERVER`, `DB_USERNAME`, `DB_NAME`, and `DB_PASSWORD`.
+> [!NOTE]  
+> In this setup, Kubernetes will be employed to substitute the values for `DB_SERVER`, `DB_USERNAME`, `DB_NAME`,
+and `DB_PASSWORD`.
 
 ---
 
 ## Part II - Dockerize the Application
 
-In this section, you'll containerize your Spring Boot application using Docker. Follow these steps to create a Docker image and push it to Docker Hub.
+In this section, you'll containerize your Spring Boot application using Docker. Follow these steps to create a Docker
+image and push it to Docker Hub.
 
 #### 📄 Dockerfile
 
 1. In the root directory, create a new file and name it `Dockerfile` (without extension).
 2. Add the following content to the `Dockerfile`:
+
 ```Dockerfile
 FROM dvmarques/openjdk-17-jdk-alpine-with-timezone
 ENV PORT 8080
@@ -82,6 +92,7 @@ EXPOSE 8080
 COPY target/*.jar /opt/app.jar
 ENTRYPOINT exec java $JAVA_OPTS -jar app.jar
 ```
+
 ### Build and Push Docker Image
 
 In the root directory, build the Docker image:
@@ -93,16 +104,24 @@ In the root directory, build the Docker image:
 $ mvn clean package -DskipTests
 $ docker build -t <YOUR_DOCKER_USERNAME>/k8s-terraform-spring-mysql .
 ```
+
 Push the image to Docker Hub:
+
 ```bash
 $ docker push <YOUR_DOCKER_USERNAME>/k8s-terraform-spring-mysql
 ```
+
 ---
+
 ## Part III - Deploy MySql on Kubernetes
+
 To deploy MySql, follow these steps:
+
 1. Create a folder named `terraform` in your app directory.
 2. Inside the `terraform` folder, add the following essential files:
+
 #### 📄 config-map.tf
+
 - config-map.tf: ConfigMap, utilized by both the MySql container and the app container to share common configurations.
 
 ```terraform
@@ -113,13 +132,15 @@ resource "kubernetes_config_map" "demo_app_cm" {
   }
 
   data = {
-    mysql-server        = "demo-app-mysql"
+    mysql-server = "demo-app-mysql"
     mysql-database-name = "demoDb"
     mysql-user-username = "myUser"
   }
 }
 ```
+
 #### 📄 secrets.tf
+
 - secrets.tf: Secret, to save sensitive data like passwords for databases.
 
 ```terraform
@@ -136,17 +157,21 @@ resource "kubernetes_secret" "demo_app_secret" {
   }
 }
 ````
-> **Note:** The values for `mysql-root-password` and `mysql-user-password` are base64 encoded. You can use the following command to encode your passwords:
+
+>[!TIP]
+> The values for `mysql-root-password` and `mysql-user-password` are base64 encoded. You can use the following command to encode your passwords:
 > ```bash
 > $ echo -n 'your-password' | base64
 > ```
 
 #### 📄 mysql.tf
+
 - mysql.tf: MySql deployment and service.
+
 ```terraform
 resource "kubernetes_service" "demo_app_mysql_service" {
   metadata {
-    name      = "demo-app-mysql"
+    name = "demo-app-mysql"
     namespace = kubernetes_namespace.demo_app_ns.metadata.0.name
     labels = {
       app = "demo-app"
@@ -155,7 +180,7 @@ resource "kubernetes_service" "demo_app_mysql_service" {
 
   spec {
     selector = {
-      app  = kubernetes_deployment.demo_app_mysql_deployment.metadata.0.labels.app
+      app = kubernetes_deployment.demo_app_mysql_deployment.metadata.0.labels.app
       tier = "mysql"
     }
 
@@ -169,7 +194,7 @@ resource "kubernetes_service" "demo_app_mysql_service" {
 
 resource "kubernetes_persistent_volume_claim" "demo_app_pvc" {
   metadata {
-    name      = "mysql-pvc"
+    name = "mysql-pvc"
     namespace = kubernetes_namespace.demo_app_ns.metadata.0.name
     labels = {
       app = "demo-app"
@@ -177,7 +202,8 @@ resource "kubernetes_persistent_volume_claim" "demo_app_pvc" {
   }
 
   spec {
-    access_modes = ["ReadWriteOnce"]
+    access_modes = [
+      "ReadWriteOnce"]
 
     resources {
       requests = {
@@ -189,7 +215,7 @@ resource "kubernetes_persistent_volume_claim" "demo_app_pvc" {
 
 resource "kubernetes_deployment" "demo_app_mysql_deployment" {
   metadata {
-    name      = "demo-app-mysql"
+    name = "demo-app-mysql"
     namespace = kubernetes_namespace.demo_app_ns.metadata.0.name
     labels = {
       app = "demo-app"
@@ -199,7 +225,7 @@ resource "kubernetes_deployment" "demo_app_mysql_deployment" {
   spec {
     selector {
       match_labels = {
-        app  = "demo-app"
+        app = "demo-app"
         tier = "mysql"
       }
     }
@@ -211,7 +237,7 @@ resource "kubernetes_deployment" "demo_app_mysql_deployment" {
     template {
       metadata {
         labels = {
-          app  = "demo-app"
+          app = "demo-app"
           tier = "mysql"
         }
       }
@@ -219,93 +245,96 @@ resource "kubernetes_deployment" "demo_app_mysql_deployment" {
       spec {
         container {
           image = "mysql:5.6"
-          name  = "mysql"
+          name = "mysql"
 
           env {
             name = "MYSQL_DATABASE"
             value_from {
               config_map_key_ref {
-                key  = "mysql-database-name"
+                key = "mysql-database-name"
                 name = kubernetes_config_map.demo_app_cm.metadata.0.name
 
               }
             }
-          }
-          }
-
-          env {
-            name = "MYSQL_ROOT_PASSWORD"
-            value_from {
-              secret_key_ref {
-                key  = "mysql-root-password"
-                name = kubernetes_secret.demo_app_secret.metadata.0.name
-
-              }
-            }
-          }
-
-          env {
-            name = "MYSQL_USER"
-            value_from {
-              config_map_key_ref {
-                key  = "mysql-user-username"
-                name = kubernetes_config_map.demo_app_cm.metadata.0.name
-
-              }
-            }
-          }
-
-          env {
-            name = "MYSQL_PASSWORD"
-            value_from {
-              secret_key_ref {
-                key  = "mysql-user-password"
-                name = kubernetes_secret.demo_app_secret.metadata.0.name
-
-              }
-            }
-          }
-
-          liveness_probe {
-            tcp_socket {
-              port = 3306
-            }
-          }
-
-          port {
-            name           = "mysql"
-            container_port = 3306
-          }
-
-          volume_mount {
-            name       = "mysql-persistent-storage"
-            mount_path = "/var/lib/mysql"
           }
         }
 
-        volume {
-          name = "mysql-persistent-storage"
-          persistent_volume_claim {
-            claim_name = kubernetes_persistent_volume_claim.demo_app_pvc.metadata.0.name
+        env {
+          name = "MYSQL_ROOT_PASSWORD"
+          value_from {
+            secret_key_ref {
+              key = "mysql-root-password"
+              name = kubernetes_secret.demo_app_secret.metadata.0.name
+
+            }
           }
+        }
+
+        env {
+          name = "MYSQL_USER"
+          value_from {
+            config_map_key_ref {
+              key = "mysql-user-username"
+              name = kubernetes_config_map.demo_app_cm.metadata.0.name
+
+            }
+          }
+        }
+
+        env {
+          name = "MYSQL_PASSWORD"
+          value_from {
+            secret_key_ref {
+              key = "mysql-user-password"
+              name = kubernetes_secret.demo_app_secret.metadata.0.name
+
+            }
+          }
+        }
+
+        liveness_probe {
+          tcp_socket {
+            port = 3306
+          }
+        }
+
+        port {
+          name = "mysql"
+          container_port = 3306
+        }
+
+        volume_mount {
+          name = "mysql-persistent-storage"
+          mount_path = "/var/lib/mysql"
+        }
+      }
+
+      volume {
+        name = "mysql-persistent-storage"
+        persistent_volume_claim {
+          claim_name = kubernetes_persistent_volume_claim.demo_app_pvc.metadata.0.name
         }
       }
     }
   }
 }
 ```
+
 > [!TIP]
 > Deployment: to checkout the MySql image and run it as a Pod/Container.
 > PersistentVolumeClaim: to manage storage.
 > Service: to expose the MySql container inside Kubernetes cluster.
 
 ## Part IV - Application deployment
+
 To deploy the application, follow these steps:
 
-1 — Create Docker Hub connection secret
-To pull the application image, you need to connect to the Docker Hub.
+1 — Create Docker Hub connection secret To pull the application image, you need to connect to the Docker Hub.
+
 #### 📄 secrets.tf
+
 in the secret file `secrets.tf`, add the following code:
+
 ```terraform
 # Create a secret for docker registry
 resource "kubernetes_secret" "docker_secret" {
@@ -327,10 +356,14 @@ resource "kubernetes_secret" "docker_secret" {
   type = "kubernetes.io/dockerconfigjson"
 }
 ```
+
 > [!NOTE]
 > values of `registry_server`, `registry_username` and `registry_password` are defined in `variables.tf` file.
+
 #### 📄 variables.tf
+
 create a file `variables.tf` and add the following code:
+
 ```terraform
 variable "registry_server" {
   type = string
@@ -347,19 +380,24 @@ variable "registry_password" {
   sensitive = true
 }
 ```
-> [!NOTE]
+
+> [!NOTE]       
 > registry_server: is the Docker Hub registry.
+> 
 > registry_username: is your Docker Hub username.
+> 
 > registry_password: is your Docker Hub password.
 
 2 — Create the application deployment and service resources .
 
 To deploy the application, create new file `application.tf` in the `terraform` folder and add the following code:
+
 #### 📄 application.tf
+
 ```terraform
 resource "kubernetes_service" "demo_app_spring_service" {
   metadata {
-    name      = "demo-app-spring"
+    name = "demo-app-spring"
     namespace = kubernetes_namespace.demo_app_ns.metadata.0.name
     labels = {
       app = "demo-app-spring"
@@ -373,11 +411,11 @@ resource "kubernetes_service" "demo_app_spring_service" {
     }
 
     port {
-      name        = "http"
-      protocol    = "TCP"
-      port        = 8080
+      name = "http"
+      protocol = "TCP"
+      port = 8080
       target_port = 8080
-      node_port   = 30000
+      node_port = 30000
     }
   }
 }
@@ -385,7 +423,7 @@ resource "kubernetes_service" "demo_app_spring_service" {
 
 resource "kubernetes_deployment" "demo_app_spring_deployment" {
   metadata {
-    name      = "demo-app-spring"
+    name = "demo-app-spring"
     namespace = kubernetes_namespace.demo_app_ns.metadata.0.name
     labels = {
       app = "demo-app-spring"
@@ -409,18 +447,18 @@ resource "kubernetes_deployment" "demo_app_spring_deployment" {
 
       spec {
         container {
-          name              = "demo-app-spring"
-          image             = "<YOUR_DOCKER_HUB_USERNAME>/k8s-terraform-spring-mysql:latest"
+          name = "demo-app-spring"
+          image = "<YOUR_DOCKER_HUB_USERNAME>/k8s-terraform-spring-mysql:latest"
           image_pull_policy = "IfNotPresent"
 
           port {
-            name           = "http"
+            name = "http"
             container_port = 8080
           }
 
           resources {
             limits = {
-              cpu    = 0.2
+              cpu = 0.2
               memory = "200Mi"
             }
           }
@@ -429,7 +467,7 @@ resource "kubernetes_deployment" "demo_app_spring_deployment" {
             name = "DB_PASSWORD"
             value_from {
               secret_key_ref {
-                key  = "mysql-user-password"
+                key = "mysql-user-password"
                 name = kubernetes_secret.demo_app_secret.metadata.0.name
 
               }
@@ -440,7 +478,7 @@ resource "kubernetes_deployment" "demo_app_spring_deployment" {
             name = "DB_SERVER"
             value_from {
               config_map_key_ref {
-                key  = "mysql-server"
+                key = "mysql-server"
                 name = kubernetes_config_map.demo_app_cm.metadata.0.name
               }
             }
@@ -450,7 +488,7 @@ resource "kubernetes_deployment" "demo_app_spring_deployment" {
             name = "DB_NAME"
             value_from {
               config_map_key_ref {
-                key  = "mysql-database-name"
+                key = "mysql-database-name"
                 name = kubernetes_config_map.demo_app_cm.metadata.0.name
               }
             }
@@ -461,7 +499,7 @@ resource "kubernetes_deployment" "demo_app_spring_deployment" {
             name = "MYSQL_USER"
             value_from {
               config_map_key_ref {
-                key  = "mysql-user-username"
+                key = "mysql-user-username"
                 name = kubernetes_config_map.demo_app_cm.metadata.0.name
 
               }
@@ -477,17 +515,18 @@ resource "kubernetes_deployment" "demo_app_spring_deployment" {
 }
 ```
 
-
 ## Part V - Create the main Terraform file
+
 To create the main Terraform file, follow these steps:
 1 — Create the main Terraform file in the `terraform` folder and name it `main.tf`.
+
 #### 📄 main.tf
 
 ```terraform
 terraform {
   required_providers {
     kubernetes = {
-      source  = "hashicorp/kubernetes"
+      source = "hashicorp/kubernetes"
       version = ">= 2.0.0"
     }
   }
@@ -503,6 +542,50 @@ resource "kubernetes_namespace" "demo_app_ns" {
   }
 }
 ```
-> [!NOTE]
+
+> [!NOTE]     
 > The main.tf file, is the entry point for Terraform. It defines the required providers and the Kubernetes namespace.
 ---
+## Part VI - Deploy Your Application
+
+In the main Terraform directory, run the following command to initialize your working directory containing the Terraform configurations:
+
+1. Initialize the Terraform working directory:
+```bash 
+$ terraform init
+```
+> [!NOTE]  
+> This will initialize the Terraform configuration and download any necessary plugins.
+
+2. Run the following command to refresh and preview all changes that Terraform plans to make to your infrastructure :
+```bash
+$ terraform plan -var 'registry_password=<YOUR_DOCKER_HUB_PASSWORD>'
+```
+> [!WARNING]  
+> Don't forget to replace `<YOUR_DOCKER_HUB_PASSWORD>` with your Docker Hub password.
+
+3. Run the following command to apply the changes:
+```bash
+$ terraform apply -var 'registry_password=<YOUR_DOCKER_HUB_PASSWORD>' -auto-approve
+```
+> [!WARNING]  
+> Don't forget to replace `<YOUR_DOCKER_HUB_PASSWORD>` with your Docker Hub password.
+
+---
+## Part VII - Test Your Application
+1. Make sure that all the pods are running and the app service is exposed as a load balancer:
+```bash
+$ kubectl get all -n demo-app-ns
+```
+> [!NOTE]    
+> Your application is running now on http://localhost:8080.
+
+
+## Part VIII - Clean Up
+To clean up the resources created by Terraform, run the following command:
+```bash
+$ terraform destroy -var 'registry_password=<YOUR_DOCKER_HUB_PASSWORD>' -auto-approve
+```
+
+Congratulations 🎉 ! You have successfully deployed a Spring Boot application with MySQL database on Kubernetes using Terraform.
+
