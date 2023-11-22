@@ -608,6 +608,6 @@ $ terraform destroy -var 'registry_password=<YOUR_DOCKER_HUB_PASSWORD>' -auto-ap
 - Congratulations 🎉 Thank you for reading my article !. 
 - You have successfully deployed a Spring Boot application with MySQL database on Kubernetes using Terraform.
 - I hope you enjoyed it and found it helpful. If you have any questions, please feel free to reach out to me on [LinkedIn](https://www.linkedin.com/in/amine-boukri/).
-
+---
 > [!IMPORTANT]   
 > This article is create by **[Amine Boukri](https://www.linkedin.com/in/amine-boukri/)**.
