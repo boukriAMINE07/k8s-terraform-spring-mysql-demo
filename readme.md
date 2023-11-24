@@ -9,7 +9,9 @@ This project demonstrates how to use Terraform to deploy a Spring Boot applicati
 - [Deploy MySql on Kubernetes](#deploy-mysql-on-kubernetes)
 - [Application deployment](#application-deployment)
 - [Create the main Terraform file](#create-the-main-terraform-file)
+- [Add Ingress for Custom Domain](#add-ingress)
 - [Deploy your application](#deploy-your-application)
+- [Test your application](#test-your-application)
 - [Clean Up](#clean-up)
 - [Conclusion](#conclusion)
 ---
@@ -428,7 +430,7 @@ resource "kubernetes_service" "demo_app_spring_service" {
     port {
       name = "http"
       protocol = "TCP"
-      port = 8080
+      port = 80
       target_port = 8080
       node_port = 30000
     }
@@ -484,6 +486,18 @@ resource "kubernetes_deployment" "demo_app_spring_deployment" {
               secret_key_ref {
                 key = "mysql-user-password"
                 name = kubernetes_secret.demo_app_secret.metadata.0.name
+
+              }
+            }
+          }
+
+
+          env {
+            name = "DB_USERNAME"
+            value_from {
+              config_map_key_ref  {
+                key  = "mysql-user-username"
+                name = kubernetes_config_map.demo_app_cm.metadata.0.name
 
               }
             }
@@ -561,55 +575,127 @@ resource "kubernetes_namespace" "demo_app_ns" {
 > [!NOTE]     
 > The main.tf file, is the entry point for Terraform. It defines the required providers and the Kubernetes namespace.
 ---
-<a name="deploy-your-application"></a>
-## Part VI - Deploy Your Application
 
+
+<a name="add-ingress"></a>
+## Part VI - Add Ingress for Custom Domain
+Before deploying your application, let's set up Ingress to enable access through a custom domain.
+
+1. Open your `/etc/hosts` file and add the following entry to map the domain to `127.0.0.1`:
+    ```plaintext
+    127.0.0.1  demo-app-spring.com
+    ```
+
+2. Ensure that your `application.tf` contains the Ingress configuration for the custom domain. Here's an example configuration you can add to the existing file:
+
+    ```hcl
+    resource "kubernetes_ingress_v1" "demo_app_ingress" {
+      metadata {
+        name      = "demo-app-ingress"
+        namespace = kubernetes_namespace.demo_app_ns.metadata.0.name
+      }
+      spec {
+        rule {
+          host = "demo-app-spring.com"
+          http {
+            path {
+              path     = "/users/*"
+              path_type = "Prefix"
+              backend {
+                service {
+                  name =  kubernetes_service.demo_app_spring_service.metadata.0.name
+                  port {
+                    number = 80
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    ```
+
+> [!NOTE]  
+> Replace `/users/` with the appropriate endpoint for your application.
+
+3. Run the following command to enable Ingress on Minikube (if not already done):
+    ```bash
+    $ minikube addons enable ingress
+    ```
+
+4. Start the Minikube tunnel to expose services:
+    ```bash
+    $ minikube tunnel
+    ```
+
+> [!WARNING]  
+> Make sure to keep the Minikube tunnel running while testing your application.
+
+---
+<a name="deploy-your-application"></a>
+## Part VII - Deploy Your Application
 In the main Terraform directory, run the following command to initialize your working directory containing the Terraform configurations:
 
 1. Initialize the Terraform working directory:
-```bash 
-$ terraform init
-```
+    ```bash 
+    $ terraform init
+    ```
 > [!NOTE]  
 > This will initialize the Terraform configuration and download any necessary plugins.
 
-2. Run the following command to refresh and preview all changes that Terraform plans to make to your infrastructure :
-```bash
-$ terraform plan -var 'registry_password=<YOUR_DOCKER_HUB_PASSWORD>'
-```
+2. Run the following command to refresh and preview all changes that Terraform plans to make to your infrastructure:
+    ```bash
+    $ terraform plan -var 'registry_password=<YOUR_DOCKER_HUB_PASSWORD>'
+    ```
 > [!WARNING]  
 > Don't forget to replace `<YOUR_DOCKER_HUB_PASSWORD>` with your Docker Hub password.
 
 3. Run the following command to apply the changes:
-```bash
-$ terraform apply -var 'registry_password=<YOUR_DOCKER_HUB_PASSWORD>' -auto-approve
-```
+    ```bash
+    $ terraform apply -var 'registry_password=<YOUR_DOCKER_HUB_PASSWORD>' -auto-approve
+    ```
 > [!WARNING]  
 > Don't forget to replace `<YOUR_DOCKER_HUB_PASSWORD>` with your Docker Hub password.
+---
+
+<a name="test-your-application"></a>
+## Part VIII - Test Your Application
+1. Make sure that all the pods are running, and the app service is exposed as a load balancer:
+    ```bash
+    $ kubectl get all -n demo-app-ns
+    ```
+
+   ![kubectl get all](./src/main/resources/static/get_all.png)
+
+2. Test your application directly with the custom domain:
+    ```bash
+    $ curl http://demo-app-spring.com/users/
+    ```
+> [!NOTE]  
+> Replace `/users/` with the appropriate endpoint for your application.
+
+   ![Postman - POST Request](./src/main/resources/static/add_user.png)
+
+   ![Postman - GET Request](./src/main/resources/static/list_users.png)
 
 ---
-<a name="test-your-application"></a>
-## Part VII - Test Your Application
-1. Make sure that all the pods are running and the app service is exposed as a load balancer:
-```bash
-$ kubectl get all -n demo-app-ns
-```
-> [!NOTE]    
-> Your application is running now on http://localhost:8080.
-----
+
+
 <a name="clean-up"></a>
-## Part VIII - Clean Up
+## Part IX - Clean Up
 To clean up the resources created by Terraform, run the following command:
 > [!CAUTION]  
 > This will destroy all the resources created by Terraform.
 ```bash
 $ terraform destroy -var 'registry_password=<YOUR_DOCKER_HUB_PASSWORD>' -auto-approve
 ```
----
+> [!WARNING]  
+> Don't forget to replace `<YOUR_DOCKER_HUB_PASSWORD>` with your Docker Hub password.
 ## Conclusion
 - Congratulations 🎉 Thank you for reading my article !. 
 - You have successfully deployed a Spring Boot application with MySQL database on Kubernetes using Terraform.
 - I hope you enjoyed it and found it helpful. If you have any questions, please feel free to reach out to me on [LinkedIn](https://www.linkedin.com/in/amine-boukri/).
 ---
 > [!IMPORTANT]   
-> This article is create by **[Amine Boukri](https://www.linkedin.com/in/amine-boukri/)**.
+> This article is created by **[Amine Boukri](https://www.linkedin.com/in/amine-boukri/)**.

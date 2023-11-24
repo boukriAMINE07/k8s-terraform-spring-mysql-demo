@@ -16,12 +16,40 @@ resource "kubernetes_service" "demo_app_spring_service" {
     port {
       name        = "http"
       protocol    = "TCP"
-      port        = 8080
+      port        = 80
       target_port = 8080
       node_port   = 30000
     }
   }
 }
+
+resource "kubernetes_ingress_v1" "demo_app_ingress" {
+  metadata {
+    name      = "demo-app-ingress"
+    namespace = kubernetes_namespace.demo_app_ns.metadata.0.name
+  }
+  spec {
+
+    rule {
+      host = "demo-app-spring.com"
+      http {
+        path {
+          path     = "/users/*"
+          path_type = "Prefix"
+          backend {
+            service {
+              name =  kubernetes_service.demo_app_spring_service.metadata.0.name
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 
 
 resource "kubernetes_deployment" "demo_app_spring_deployment" {
@@ -32,8 +60,6 @@ resource "kubernetes_deployment" "demo_app_spring_deployment" {
       app = "demo-app-spring"
     }
   }
-
-
   spec {
     selector {
       match_labels = {
@@ -72,6 +98,17 @@ resource "kubernetes_deployment" "demo_app_spring_deployment" {
               secret_key_ref {
                 key  = "mysql-user-password"
                 name = kubernetes_secret.demo_app_secret.metadata.0.name
+
+              }
+            }
+          }
+
+          env {
+            name = "DB_USERNAME"
+            value_from {
+              config_map_key_ref  {
+                key  = "mysql-user-username"
+                name = kubernetes_config_map.demo_app_cm.metadata.0.name
 
               }
             }

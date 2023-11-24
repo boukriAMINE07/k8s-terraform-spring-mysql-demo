@@ -117,7 +117,6 @@ resource "kubernetes_deployment" "demo_app_mysql_deployment" {
               secret_key_ref {
                 key  = "mysql-user-password"
                 name = kubernetes_secret.demo_app_secret.metadata.0.name
-
               }
             }
           }
@@ -149,3 +148,11 @@ resource "kubernetes_deployment" "demo_app_mysql_deployment" {
     }
   }
 }
+
+
+
+
+
+
+
+
