@@ -546,8 +546,7 @@ resource "kubernetes_deployment" "demo_app_spring_deployment" {
 <a name="create-the-main-terraform-file"></a>
 ## Part V - Create the main Terraform file
 
-To create the main Terraform file, follow these steps:
-1 — Create the main Terraform file in the `terraform` folder and name it `main.tf`.
+Create the main Terraform file in the `terraform` folder and name it `main.tf`.
 
 #### 📄 main.tf
 
